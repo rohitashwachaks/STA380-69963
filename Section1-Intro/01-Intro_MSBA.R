@@ -49,7 +49,7 @@ line <- readline()
 }
 
 ######################################
-## OUT-OF-SAMPLE Prediction
+### OUT-OF-SAMPLE Prediction
 ######################################
 
 train = data.frame(lstat,medv)
@@ -175,7 +175,7 @@ text(log(1/100)+0.4,sqrt(mMSE[100]),paste("k=",100),col=2,cex=1.2)
 library(maps)
 
 
-ca <- read.csv("CAhousing.csv")
+ca <- read.csv("datasets/CAhousing.csv")
 logMedVal <- log(ca$medianHouseValue)
 
 n=dim(ca)[1]

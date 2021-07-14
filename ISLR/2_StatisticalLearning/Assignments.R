@@ -72,7 +72,7 @@ plot(college$Accept/college$Apps
      ,legend = legend("topright", col=c("red","green"),c("Elite","Not Elite"))
      )
 
-#### Question9: Auto DataSet ####
+#### Question 9: Auto DataSet ####
 
 # Read Auto Data
 auto = read.csv("../datasets/Auto.csv")
