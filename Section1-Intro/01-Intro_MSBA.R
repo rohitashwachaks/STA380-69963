@@ -21,7 +21,7 @@ plot(lstat,medv,
 
 # Both Test and Train identical?!!
 # Test isn't really needed but for the sake of the function to work
-# We are jsut showing how Knn works in this section
+# We are just showing how Knn works in this section
 train <- data.frame(lstat,medv)
 test <- data.frame(lstat,medv)
 

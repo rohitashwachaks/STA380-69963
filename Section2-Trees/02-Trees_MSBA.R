@@ -1,22 +1,19 @@
-
-
-###################################################
 ## Fit a regression tree to medv~lstat in the boston housing data.
 ## The tree is plotted as well as a plot of the corresponding step function
 ## fit to the data.
 ## The cutpoints from tree are added to the plot so you can see how
 ## the tree corresponds to the function.
-###################################################
 
 library(tree)
 library(MASS)
 data(Boston)
 attach(Boston)
 
-#--------------------------------------------------
-#fit a tree to boston data just using lstat.
+#----fit a tree to boston data just using lstat----
 
 #first get a big tree using a small value of mindev
+#The within-node deviance must be at least this times that of the root node
+#for the node to be split.
 temp = tree(medv~lstat,data=Boston,mindev=.0001)
 cat('first big tree size: \n')
 print(length(unique(temp$where)))
@@ -26,8 +23,8 @@ boston.tree=prune.tree(temp,best=7)
 cat('pruned tree size: \n')
 print(length(unique(boston.tree$where)))
 
-#--------------------------------------------------
-#plot the tree and the fits.
+#----plot the tree and the fits.----
+#
 par(mfrow=c(1,2))
 
 #plot the tree
@@ -48,11 +45,9 @@ rm(list=ls())
 
 
 
-################################################################################
-## Fit a regression tree to mev~dis+lstat from the Boston housing data.
-## The tree is plotted as well as the corresponding partition of the two-dimensional
-## x=(dis,lstat) space.
-################################################################################
+#----Fit a regression tree to mev~dis+lstat from the Boston housing data----
+# The tree is plotted as well as the corresponding partition of the two-dimensional
+# x=(dis,lstat) space.
 
 library(MASS)
 data(Boston)
@@ -84,10 +79,7 @@ partition.tree(boston.tree)
 
 rm(list=ls())
 
-################################################################################
-## Fit a regression tree to medv~dis+lstat and then do a perpective
-## plot of (x1,x2) vs. y.
-################################################################################
+#----Fit a regression tree to medv~dis+lstat and then do a perpective plot of (x1,x2) vs. y.----
 
 library(MASS)
 data(Boston)
@@ -620,3 +612,4 @@ varImpPlot(finrf)
 
 g#--------------------------------------------------
 rm(list=ls())
+
