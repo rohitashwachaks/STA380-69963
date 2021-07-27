@@ -1,12 +1,13 @@
 #Question 2----
 
-  ##2. a----
 rm(list = ls())
 library(MASS)
 attach(Boston)
 ?Boston
 
 View(Boston)
+
+  ##2. a----
 
 # How many rows, columns are there in the data?
 cat("Rows: ", dim(Boston)[1], ", Columns: ", dim(Boston)[2])
