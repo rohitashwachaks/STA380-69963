@@ -5,9 +5,6 @@ date: "30/07/2021"
 output:
   pdf_document: default
 ---
-
-<a id="ex11">
-
 # EXERCISE 4.10:
 
 ```{r 4.10.setup, include=FALSE}
@@ -15,12 +12,13 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 
+knitr::opts_chunk$set(set.seed(1))
+
 rm(list = ls())
 require(ISLR)
 attach(Weekly)
 require(caret)
 require(class)
-set.seed(1)
 ```
 
 ## _4.10.a_
@@ -44,7 +42,7 @@ To check if a parameter is significant or not, we must check for its __P-Vaue__.
 From the Summary, only `Lag2` has a __P-Value__ < 0.05.
 Thus, only `Lag2` is statistically significant.
 
-## __Part c)__
+## _4.10.c_
 
 ```{r 4.10.c}
 preds <- as.factor(ifelse(mdl$fitted > 0.5, "Up", "Down"))
@@ -66,7 +64,7 @@ These results were obtained from the same set of observations the model was trai
 Therefore, it is highly likely that the results would prove to be _overly optimistic_ 
 when tested on a new set of data.
 
-## __Part d)__
+## _4.10.d_
 
 ```{r 4.10.d}
 filtered_years <- Weekly$Year %in% (1990:2008)
@@ -81,7 +79,7 @@ cat("[Logistic Regression] Overall Fraction of Correct Predictions (Accuracy) : 
     paste(round(cm$overall["Accuracy"], digits = 2)))
 ```
 
-## __Part g)__
+## _4.10.g_
 
 ```{r 4.10.g}
 preds <- knn(as.matrix(train$Lag2), as.matrix(test$Lag2), train$Direction, k=1)
@@ -91,12 +89,12 @@ cat("[KNN (k = 1)] Overall Fraction of Correct Predictions (Accuracy) : ",
     paste(round(cm$overall["Accuracy"], digits = 2)))
 ```
 
-## __Part h)__
+## _4.10.h_
 
 Considering **only Accuracy** as our metric, we can conclude that _Logistic Regression_
 outperforms _KNN (with k = 1)_ 
 
-## __Part i)__
+## _4.10.i_
 
 >Experimenting with different KNN models:
 
@@ -210,9 +208,7 @@ plot(Weekly$Direction,Weekly$Today,
 
 
 ***
-</a>
-
-<a id="6.9">
+<a id="4.10"></a>
 
 # EXERCISE 6.9:
 
@@ -221,12 +217,14 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 
+knitr::opts_chunk$set(set.seed(0))
+
 rm(list = ls())
 require(MASS)
-require(corrplot)
 require(ISLR)
 require(leaps)
 require(glmnet)
+require(pls)
 attach(College)
 set.seed(1)
 
@@ -253,8 +251,8 @@ The test error on applying Linear Regression on a Model with All Parameters is:
 mdl <- lm(Apps~., data=train)
 
 preds <- predict(mdl,newdata = test)
-test_error <- mean((preds-test$Apps)^2)
-cat(paste(round(test_error, digits = 3)))
+linreg_error <- mean((preds-test$Apps)^2)
+cat(paste(round(linreg_error, digits = 3)))
 ```
 ## _6.9.c_
 ```{r 6.9.c.1}
@@ -265,15 +263,15 @@ mdl <- cv.glmnet(inp_train, train$Apps, alpha=0)
 lambda <- mdl$lambda.min  # optimal lambda
 cat("Optimal Lambda, by 10-fold cross-validation is:",paste(lambda))
 ```
-```{r 6.9.c.2}
+```{r 6.9.c.2, fig.align='center', fig.height = 5, fig.width = 5}
 plot(mdl)
 ```
 The test error on applying **Ridge-Regression** on a Model with All Parameters is:
 
 ```{r 6.9.c.3}
-preds <- predict(mdl, s=lambda, newx=inp_test)
-ridge_err <- mean((preds - test$Apps)^2)
-
+ridge_preds <- predict(mdl, s=lambda, newx=inp_test)
+ridge_err <- mean((ridge_preds - test$Apps)^2)
+# sd((ridge_preds - test$Apps)^2)
 cat(paste(round(ridge_err, digits = 3)))
 ```
 ## _6.9.d_
@@ -282,10 +280,10 @@ mdl <- cv.glmnet(inp_train, train$Apps, alpha=1)
 lambda <- mdl$lambda.min  # optimal lambda
 cat("Optimal Lambda, by 10-fold cross-validation is:",paste(lambda))
 ```
-```{r 6.9.d.2}
+```{r 6.9.d.2, fig.align='center', fig.height = 5, fig.width = 5}
 plot(mdl)
 ```
-The test error on applying **Ridge-Regression** on a Model with All Parameters is:
+The test error on applying **Lasso-Regression** on a Model with All Parameters is:
 
 ```{r 6.9.d.3}
 preds <- predict(mdl, s=lambda, newx=inp_test)
@@ -300,48 +298,260 @@ preds
 ```
 Thus, Non-Zero Coefficient Estimate Predictors are:
 ```{r 6.9.d.5}
-cat(paste(colnames(t(preds))[which(preds != 0)]))
+colnames(t(preds))[which(preds != 0)]
 ```
 
 ## _6.9.e_
-require(pls)
-set.seed(1)
-fit.pcr <- pcr(Apps~., data=train, scale=TRUE, validation="CV")
-validationplot(fit.pcr, val.type="MSEP")
-summary(fit.pcr)
-pred.pcr <- predict(fit.pcr, test, ncomp=16)  # min Cv at M=16
-(err.pcr <- mean((test$Apps - pred.pcr)^2))  # test error
+```{r 6.9.e.1}
+mdl <- pcr(Apps~., data=train, scale=TRUE, validation="CV")
+validationplot(mdl, val.type="MSEP")
+summary(mdl)
+cat("Minimum CV at ")
+```
+Minimum CV at **M = 17**. Thus, using _predict(...,ncomp=17,...)_
 
+The test error on applying **Principal Component Regression** on a Model with All Parameters is:
+```{r 6.9.e.2}
+preds <- predict(mdl, test, ncomp=17)
+pcr_err <- mean((test$Apps - preds)^2)
 
+cat(paste(round(pcr_err, digits = 3)))
+```
+## _6.9.f_
+```{r 6.9.f.1}
+mdl <- plsr(Apps~., data=train, scale=TRUE, validation="CV")
+validationplot(mdl, val.type="MSEP")
+summary(mdl)
+```
+Minimum CV at **M = 13**. Thus, using _predict(...,ncomp=13,...)_
 
+The test error on applying **Partial Least Squares Regression** on a Model with All Parameters is:
+```{r 6.9.f.2}
+preds <- predict(mdl, test, ncomp=13)
+plsr_err <- mean((test$Apps - preds)^2)
 
+cat(paste(round(plsr_err, digits = 3)))
+```
+## _6.9.g_
+```{r 6.9.g.1, fig.align='center', fig.height = 5, fig.width = 5}
+all_errs <- c(linreg_error, ridge_err, lasso_err, pcr_err, plsr_err)
+names(all_errs) <- c("linear", "ridge", "lasso", "pcr", "pls")
+barplot(all_errs, xlab = "Type of Regression", ylab = "MSE", 
+        main = "Comparison of Regression Fit")
+```
 
+Most of the regression methods _("Linear", "Ridge", "Lasso", "PCR", "PLS")_ have approximately the same amount of error.
 
-
-
+The **Ridge Regression** outperforms others by a slight margin.
+Its **Test MSE** is: 1447148.005 _(standard deviation = 5319499)_
+```{r 6.9.g.2, fig.align='center', fig.height = 5, fig.width = 5}
+plot(test$Apps, xlab= "Actual Admits", 
+     ridge_preds, ylab = "Predicted Admits",
+     main = "Prediction Error in Ridge Regression",
+     xlim = c(0,20000), ylim = c(0,20000))
+abline(1,1, col="red")
+```
 ***
-</a>
+<a id="6.9"></a>
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# R Markdown
+# EXERCISE 6.11:
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r 6.11.setup, warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+knitr::opts_chunk$set(set.seed(0))
 
-```{r cars}
-summary(cars)
+rm(list = ls())
+require(leaps)   # forward and backward selection
+require(glmnet)  # ridge and lasso
+require(MASS)    # Boston data set
+attach(Boston)
+set.seed(1)
+
 ```
 
-## Including Plots
+## _6.11.a_
 
-You can also embed plots, for example:
+Creating a **80-20** split between *Train* and *Test* set
+```{r 6.11.a.1}
+tr <- sample(c(1:nrow(Boston)), round(0.8*nrow(Boston), digits = 0))
+train <- Boston[tr,]
+test <- Boston[-tr,]
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+inp_train <- model.matrix(crim~., data=train)[,-1]
+inp_test <- model.matrix(crim~., data=test)[,-1]
+
+cat("Length of Boston Dataset:",paste(nrow(Boston)),"\n")
+cat("Length of Train Dataset :",paste(nrow(inp_train)),"\n")
+cat("Length of Test Dataset  :",paste(nrow(inp_test)))
+```
+> **Ridge Regression**
+
+```{r 6.11.a.ridge}
+# ridge regression model
+mdl <- cv.glmnet(inp_train, train$crim, alpha=0)
+plot(mdl)
+lambda <- mdl$lambda.min
+cat("Optimal Lambda, by 10-fold cross-validation is:",paste(round(lambda, digits = 2)))
+preds <- predict(mdl, s=lambda, newx=inp_test)
+ridge_err <- mean((test$crim - preds)^2)
+cat("\nTest Error of Ridge Regression:",paste(round(ridge_err, digits = 2)))
+# predict(mdl, s=lambda, type="coefficients")
+```
+> **Lasso Regression**
+
+```{r 6.11.a.lasso}
+# lasso regression model
+mdl <- cv.glmnet(inp_train, train$crim, alpha=1)
+plot(mdl)
+lambda <- mdl$lambda.min
+cat("Optimal Lambda, by 10-fold cross-validation is:",paste(round(lambda, digits = 2)))
+preds <- predict(mdl, s=lambda, newx=inp_test)
+lasso_err <- mean((test$crim - preds)^2)
+cat("\nTest Error of Lasso Regression:",paste(round(lasso_err, digits = 2)))
+# predict(mdl, s=lambda, type="coefficients")
+```
+<!-- > **Principal Component Regression** -->
+
+<!-- ```{r 6.11.a.pcr} -->
+<!-- # principal component regression model -->
+<!-- mdl <- cv.glmnet(inp_train, train$crim, alpha=1) -->
+<!-- plot(mdl) -->
+<!-- lambda <- mdl$lambda.min -->
+<!-- cat("Optimal Lambda, by 10-fold cross-validation is:",paste(round(lambda, digits = 2))) -->
+<!-- preds <- predict(mdl, s=lambda, newx=inp_test) -->
+<!-- lasso_err <- mean((test$crim - preds)^2) -->
+<!-- cat("\nTest Error of Lasso Regression:",paste(round(lasso_err, digits = 2))) -->
+<!-- # predict(mdl, s=lambda, type="coefficients") -->
+<!-- ``` -->
+<!-- > **Partial Least Square Regression** -->
+
+<!-- ```{r 6.11.a.plsr} -->
+<!-- # partial least square regression model -->
+<!-- mdl <- cv.glmnet(inp_train, train$crim, alpha=1) -->
+<!-- plot(mdl) -->
+<!-- lambda <- mdl$lambda.min -->
+<!-- cat("Optimal Lambda, by 10-fold cross-validation is:",paste(round(lambda, digits = 2))) -->
+<!-- preds <- predict(mdl, s=lambda, newx=inp_test) -->
+<!-- lasso_err <- mean((test$crim - preds)^2) -->
+<!-- cat("\nTest Error of Lasso Regression:",paste(round(lasso_err, digits = 2))) -->
+<!-- # predict(mdl, s=lambda, type="coefficients") -->
+<!-- ``` -->
+```{r 6.11.a.2}
+# predict function from chapter 6 labs
+predict.regsubsets <- function(object, newdata, id, ...){
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form, newdata)
+  coefi <- coef(object, id=id)
+  xvars <- names(coefi)
+  mat[,xvars]%*%coefi
+}
+```
+> **Subset Selection _(Forward Selection)_**
+
+```{r 6.11.a.forward-selection}
+# forward selection
+fit.fwd <- regsubsets(crim~., data=train, nvmax=ncol(Boston)-1)
+(fwd.summary <- summary(fit.fwd))
+fwd_err <- rep(NA, ncol(Boston)-1)
+for(i in 1:(ncol(Boston)-1)) {
+  pred.fwd <- predict(fit.fwd, test, id=i)
+  fwd_err[i] <- mean((test$crim - pred.fwd)^2)
+}
+plot(fwd_err, type="b", main="Test MSE for Forward Selection", xlab="Number of Predictors")
+min <- which.min(fwd_err)
+abline(v =min, col="red")
+cat("\nMin. Test Error for Forward Selection is:",paste(round(fwd_err[min], digits = 2)))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+<!-- ```{r} -->
+<!-- par(mfrow=c(3,2)) -->
+
+<!-- min.cp <- which.min(fwd.summary$cp) -->
+<!-- plot(fwd.summary$cp, xlab="Number of Poly(X)", ylab="Forward Selection Cp", type="l") -->
+<!-- points(min.cp, fwd.summary$cp[min.cp], col="red", pch=4, lwd=5) -->
+
+<!-- min.cp <- which.min(bwd.summary$cp) -->
+<!-- plot(bwd.summary$cp, xlab="Number of Poly(X)", ylab="Backward Selection Cp", type="l") -->
+<!-- points(min.cp, bwd.summary$cp[min.cp], col="red", pch=4, lwd=5) -->
+
+<!-- min.bic <- which.min(fwd.summary$bic) -->
+<!-- plot(fwd.summary$bic, xlab="Number of Poly(X)", ylab="Forward Selection BIC", type="l") -->
+<!-- points(min.bic, fwd.summary$bic[min.bic], col="red", pch=4, lwd=5) -->
+
+<!-- min.bic <- which.min(bwd.summary$bic) -->
+<!-- plot(bwd.summary$bic, xlab="Number of Poly(X)", ylab="Backward Selection BIC", type="l") -->
+<!-- points(min.bic, bwd.summary$bic[min.bic], col="red", pch=4, lwd=5) -->
+
+<!-- min.adjr2 <- which.max(fwd.summary$adjr2) -->
+<!-- plot(fwd.summary$adjr2, xlab="Number of Poly(X)", ylab="Forward Selection Adj. R^2", type="l") -->
+<!-- points(min.adjr2, fwd.summary$adjr2[min.adjr2], col="red", pch=4, lwd=5) -->
+
+<!-- min.adjr2 <- which.max(bwd.summary$adjr2) -->
+<!-- plot(bwd.summary$adjr2, xlab="Number of Poly(X)", ylab="Backward Selection Adj. R^2", type="l") -->
+<!-- points(min.adjr2, bwd.summary$adjr2[min.adjr2], col="red", pch=4, lwd=5) -->
+<!-- ``` -->
+
+```{r 6.11.a.3, fig.align='center', fig.height = 5, fig.width = 5}
+all_errs <- c(ridge_err, lasso_err, min(fwd_err))
+names(all_errs) <- c("ridge", "lasso", "Forward")
+barplot(all_errs, xlab = "Type of Regression", ylab = "MSE", 
+        main = "Comparison of Regression Fit")
+```
+
+The regression methods _("Ridge", "Lasso", "Forward Selection")_ have approximately the same amount of error.
+
+The **Subset Selection(Forward Selection) Regression** outperforms others by a slight margin.
+Its **Test MSE** is: 69.55
+```{r 6.11.a.4, fig.align='center', fig.height = 5, fig.width = 5}
+plot(test$crim, xlab= "Actual Crime Rate", 
+     pred.fwd, ylab = "Predicted Crime Rate",
+     main = "Prediction Error",
+     xlim = c(0,100), ylim = c(0,100))
+abline(1,1, col="red")
+```
+
+
+## _6.11.b_
+From the above Test Set Errors, we can reasonably conclude that the 11-parameter Forward selection model is the
+best fit to the Boston Dataset
+
+## _6.11.c_
+No because not all the predictors add much value to the model.
+Adding more predictors makes the model more complex and computationally expensive.
+Thus, If a predictor does not increase the amount of variance explained by the model significantly,
+we can drop it.
+In our case, We choose the Forward Selection model, which uses just 11 Predictors.
+
+***
+<a id="6.11"></a>
+
+# EXERCISE 8.8:
+
+```{r 8.8.setup, warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(0))
+
+rm(list = ls())
+require(leaps)   # forward and backward selection
+require(glmnet)  # ridge and lasso
+require(MASS)    # Boston data set
+attach(Boston)
+set.seed(1)
+
+```
+
+## _8.8.a_
+
+***
+<a id="8.8"></a>
