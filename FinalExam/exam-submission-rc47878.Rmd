@@ -1,0 +1,347 @@
+---
+title: "Untitled"
+author: "Rohitashwa Chakraborty"
+date: "30/07/2021"
+output:
+  pdf_document: default
+---
+
+<a id="ex11">
+
+# EXERCISE 4.10:
+
+```{r 4.10.setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+rm(list = ls())
+require(ISLR)
+attach(Weekly)
+require(caret)
+require(class)
+set.seed(1)
+```
+
+## _4.10.a_
+
+```{r 4.10.a}
+summary(Weekly)
+pairs(Weekly[,-9])
+```
+
+Positive Correlation between `Year` and `Volume` observed.
+
+## _4.10.b_
+
+```{r 4.10.b}
+mdl <- glm(Direction~., data=Weekly[,c(2:7,9)], family=binomial)
+summary(mdl)
+```
+
+To check if a parameter is significant or not, we must check for its __P-Vaue__.
+
+From the Summary, only `Lag2` has a __P-Value__ < 0.05.
+Thus, only `Lag2` is statistically significant.
+
+## __Part c)__
+
+```{r 4.10.c}
+preds <- as.factor(ifelse(mdl$fitted > 0.5, "Up", "Down"))
+cm <- confusionMatrix(preds, Direction, positive = "Up")
+cm$table
+cat("Accuracy            : ",paste(round(cm$overall["Accuracy"], digits = 4)*100),"%")
+cat("Recall/Sensitivity  : ",paste(round(cm$byClass["Recall"], digits = 4)*100),"%")
+cat("Precision           : ",paste(round(cm$byClass["Precision"], digits = 4)*100),"%")
+cat("Specificity         : ",paste(round(cm$byClass["Specificity"], digits = 4)*100),"%")
+cat("Up Prediction Rate  : ",paste(round(cm$byClass["Pos Pred Value"], digits = 4)*100),"%")
+cat("Down Prediction Rate: ",paste(round(cm$byClass["Neg Pred Value"], digits = 4)*100),"%")
+```
+48 _"Up"_ were mistaken for _"Down"_.
+430 _"Down"_ were mistaken for _"Up"_.
+54 _"Down"_+ 557 _"Up"_ were predicted accurately .
+Model is has higher accuracy when the prediction is _"Up"_
+
+These results were obtained from the same set of observations the model was trained upon.
+Therefore, it is highly likely that the results would prove to be _overly optimistic_ 
+when tested on a new set of data.
+
+## __Part d)__
+
+```{r 4.10.d}
+filtered_years <- Weekly$Year %in% (1990:2008)
+train <- Weekly[filtered_years,]
+test <- Weekly[!filtered_years,]
+mdl <- glm(Direction~Lag2, data=train, family=binomial)
+preds <- predict(mdl, test, type="response")
+preds <- as.factor(ifelse(preds > 0.5, "Up", "Down"))
+cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+cm$table
+cat("[Logistic Regression] Overall Fraction of Correct Predictions (Accuracy) : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)))
+```
+
+## __Part g)__
+
+```{r 4.10.g}
+preds <- knn(as.matrix(train$Lag2), as.matrix(test$Lag2), train$Direction, k=1)
+cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+cm$table
+cat("[KNN (k = 1)] Overall Fraction of Correct Predictions (Accuracy) : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)))
+```
+
+## __Part h)__
+
+Considering **only Accuracy** as our metric, we can conclude that _Logistic Regression_
+outperforms _KNN (with k = 1)_ 
+
+## __Part i)__
+
+>Experimenting with different KNN models:
+
+```{r 4.10.i.1}
+cat("Predictors: Lag2\n")
+for(neighbourhood in seq(30,400, by = 100)){
+  preds <- knn(as.matrix(train$Lag2), 
+               as.matrix(test$Lag2), 
+               train$Direction, 
+               k=neighbourhood)
+  cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+  cat("[KNN (k = ",paste(neighbourhood),")] Accuracy : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)),"\n")
+}
+
+cat("\nPredictors: Lag2, Lag1\n")
+for(neighbourhood in seq(30,400, by = 100)){
+  preds <- knn(as.matrix(train$Lag2,train$Lag1),
+               as.matrix(test$Lag2,test$Lag1),
+               train$Direction, k=neighbourhood)
+
+  cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+  cat("[KNN (k = ",paste(neighbourhood),")] Accuracy : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)),"\n")
+}
+
+cat("\nPredictors: Lag2^2\n")
+for(neighbourhood in seq(30,400, by = 100)){
+  preds <- knn(as.matrix(I(train$Lag2^2)), 
+               as.matrix(I(test$Lag2^2)), 
+               train$Direction, 
+               k=neighbourhood)
+  cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+  cat("[KNN (k = ",paste(neighbourhood),")] Accuracy : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)),"\n")
+}
+
+cat("\nPredictors: Lag2*Lag1\n")
+for(neighbourhood in seq(30,400, by = 100)){
+  preds <- knn(as.matrix(train$Lag2*train$Lag1),
+               as.matrix(test$Lag2*test$Lag1),
+               train$Direction, k=neighbourhood)
+
+  cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+  cat("[KNN (k = ",paste(neighbourhood),")] Accuracy : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)),"\n")
+}
+
+cat("\nPredictors: All\n")
+for(neighbourhood in seq(30,400, by = 100)){
+  preds <- knn(as.matrix(train[,-9]),
+               as.matrix(test[,-9]),
+               train$Direction, k=neighbourhood)
+
+  cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+  cat("[KNN (k = ",paste(neighbourhood),")] Accuracy : ",
+    paste(round(cm$overall["Accuracy"], digits = 2)),"\n")
+}
+```
+
+Considering only **Accuracy**, we can conclude that the following models perform the best:
+
+**K= 30, Predictors: All Predictors**
+
+```{r4.10.i.2}
+preds <- knn(as.matrix(train[,-9]),
+               as.matrix(test[,-9]),
+               train$Direction, k=30)
+cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+cat("Confusion Matrix for K= 130, Predictors: All\n")
+cm$table
+```
+
+>Experimenting with different Logistic Regression Models:
+
+```{r 4.10.i.3}
+cat("Logistic Regression\n")
+for(predictor in c("Lag2","Lag2+Lag1","Lag2*Lag1","I(Lag2^2)",".")){
+  mdl <- glm(paste("Direction~",predictor), 
+             data=train, family=binomial)
+  preds <- predict(mdl, test, type="response")
+  preds <- as.factor(ifelse(preds > 0.5, "Up", "Down"))
+  cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+  if(predictor == "."){
+    cat("\n[Predictors: All] Accuracy : ", paste(round(cm$overall["Accuracy"], digits = 2)))
+  }
+  else{
+    cat("\n[Predictors:",predictor,"] Accuracy : ", paste(round(cm$overall["Accuracy"], digits = 2)))
+  }
+}
+```
+Considering Accuracy, It seems Using **All the Parameters** gives by far the most
+accurate model with a **100% Accuracy**.
+
+```{r 4.10.i.4}
+mdl <- glm(Direction~., 
+             data=train, family=binomial)
+preds <- predict(mdl, test, type="response")
+preds <- as.factor(ifelse(preds > 0.5, "Up", "Down"))
+cm <- confusionMatrix(preds, Direction[!filtered_years], positive = "Up")
+cat("Confusion Matrix for Linear Regression Model with All Predictors:\n")
+cm$table
+```
+
+_NOTE: This is not surprising because one of the predictors the model trains upon is **Today**._
+_This predictor seems to have a distinct linear boundary when plotted against **Direction**_
+```{r 4.10.i.5, fig.align='center', fig.height = 5, fig.width = 5}
+plot(Weekly$Direction,Weekly$Today,
+     xlab="Direction", ylab="Today", main="Spread of Today v/s Direction")
+```
+
+
+***
+</a>
+
+<a id="6.9">
+
+# EXERCISE 6.9:
+
+```{r 6.9.setup, warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+rm(list = ls())
+require(MASS)
+require(corrplot)
+require(ISLR)
+require(leaps)
+require(glmnet)
+attach(College)
+set.seed(1)
+
+College$Private <- as.factor(College$Private)
+#Scaling the variables
+College[c(-1,-2)] <- as.data.frame(scale(College[c(-1,-2)]))
+```
+
+## _6.9.a_
+
+Creating a **80-20** split between *Train* and *Test* set
+```{r 6.9.a}
+n <- dim(College)[1]
+tr <- sample(c(1:n), round(0.8*n, digits = 0))
+train <- College[tr,]
+test <- College[-tr,]
+cat("Length of College Dataset:",paste(dim(College)[1]),"\n")
+cat("Length of Train Dataset  :",paste(dim(train)[1]),"\n")
+cat("Length of Test Dataset   :",paste(dim(test)[1]),"\n")
+```
+## _6.9.b_
+The test error on applying Linear Regression on a Model with All Parameters is:
+```{r 6.9.b}
+mdl <- lm(Apps~., data=train)
+
+preds <- predict(mdl,newdata = test)
+test_error <- mean((preds-test$Apps)^2)
+cat(paste(round(test_error, digits = 3)))
+```
+## _6.9.c_
+```{r 6.9.c.1}
+inp_train <- model.matrix(Apps~., data=train)[,-1]
+inp_test <- model.matrix(Apps~., data=test)[,-1]
+
+mdl <- cv.glmnet(inp_train, train$Apps, alpha=0)
+lambda <- mdl$lambda.min  # optimal lambda
+cat("Optimal Lambda, by 10-fold cross-validation is:",paste(lambda))
+```
+```{r 6.9.c.2}
+plot(mdl)
+```
+The test error on applying **Ridge-Regression** on a Model with All Parameters is:
+
+```{r 6.9.c.3}
+preds <- predict(mdl, s=lambda, newx=inp_test)
+ridge_err <- mean((preds - test$Apps)^2)
+
+cat(paste(round(ridge_err, digits = 3)))
+```
+## _6.9.d_
+```{r 6.9.d.1}
+mdl <- cv.glmnet(inp_train, train$Apps, alpha=1)
+lambda <- mdl$lambda.min  # optimal lambda
+cat("Optimal Lambda, by 10-fold cross-validation is:",paste(lambda))
+```
+```{r 6.9.d.2}
+plot(mdl)
+```
+The test error on applying **Ridge-Regression** on a Model with All Parameters is:
+
+```{r 6.9.d.3}
+preds <- predict(mdl, s=lambda, newx=inp_test)
+lasso_err <- mean((preds - test$Apps)^2)
+
+cat(paste(round(lasso_err, digits = 3)))
+```
+Coefficients of Predictors using the Lasso-Regression method are:
+```{r 6.9.d.4}
+preds <- predict(mdl, type="coefficients", s=lambda, newx=inp_test)[-1,]
+preds
+```
+Thus, Non-Zero Coefficient Estimate Predictors are:
+```{r 6.9.d.5}
+cat(paste(colnames(t(preds))[which(preds != 0)]))
+```
+
+## _6.9.e_
+require(pls)
+set.seed(1)
+fit.pcr <- pcr(Apps~., data=train, scale=TRUE, validation="CV")
+validationplot(fit.pcr, val.type="MSEP")
+summary(fit.pcr)
+pred.pcr <- predict(fit.pcr, test, ncomp=16)  # min Cv at M=16
+(err.pcr <- mean((test$Apps - pred.pcr)^2))  # test error
+
+
+
+
+
+
+
+
+***
+</a>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

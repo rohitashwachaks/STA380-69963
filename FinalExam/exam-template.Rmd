@@ -64,15 +64,15 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 Not all messages from the console are desirable, for example, let us turn on the *tidyverse* package:
 
-```{r example2, echo=FALSE}
+```{r example2, echo=FALSE, warning = FALSE, message = FALSE}
 library(tidyverse)
 ```
 
-Note that those messages are not important to the analysis, so you may want to use the `message = FALSE` argument. You can also surpress undesirable warnings using the `warning = FALSE` argument. 
+Note that those messages are not important to the analysis, so you may want to use the `message = FALSE` argument. You can also suppress undesirable warnings using the `warning = FALSE` argument. 
 
 You can include multiple arguments in the curly brackets, separating those arguments with a comma.
 
-A better option if your simply want the code to run and surpress both the code and the results from the code from appearing in the final file is to use the `include = FALSE` argument. Do not forget that no results will be printed by using this option, se be careful.
+A better option if your simply want the code to run and suppress both the code and the results from the code from appearing in the final file is to use the `include = FALSE` argument. Do not forget that no results will be printed by using this option, so be careful.
 
 For example, I will created an object in one chunk with the `include = FALSE` argument, but the result will not be printed.
 
@@ -102,7 +102,7 @@ y <- dnorm(x)+rnorm(1000,0,.01)
 plot(x,y)
 ```
 
-It is as easy as it looks. Note that the `echo = FALSE` argument surpressed the code and only the plot was printed. You can also include arguments in your chunk that will change the features of your plot, such as width, height and alignment.
+It is as easy as it looks. Note that the `echo = FALSE` argument suppressed the code and only the plot was printed. You can also include arguments in your chunk that will change the features of your plot, such as width, height and alignment.
 
 ```{r fig2, echo=FALSE, fig.align='left', fig.height = 3, fig.width = 5}
 plot(x,y, col = "red")
