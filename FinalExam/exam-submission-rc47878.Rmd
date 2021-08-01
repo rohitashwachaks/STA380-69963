@@ -217,7 +217,7 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 
-knitr::opts_chunk$set(set.seed(0))
+knitr::opts_chunk$set(set.seed(1))
 
 rm(list = ls())
 require(MASS)
@@ -354,11 +354,6 @@ abline(1,1, col="red")
 ***
 <a id="6.9"></a>
 
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 # EXERCISE 6.11:
 
 ```{r 6.11.setup, warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
@@ -366,14 +361,13 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 
-knitr::opts_chunk$set(set.seed(0))
+knitr::opts_chunk$set(set.seed(7))
 
 rm(list = ls())
 require(leaps)   # forward and backward selection
 require(glmnet)  # ridge and lasso
 require(MASS)    # Boston data set
 attach(Boston)
-set.seed(1)
 
 ```
 
@@ -512,10 +506,10 @@ The **Subset Selection(Forward Selection) Regression** outperforms others by a s
 Its **Test MSE** is: 69.55
 ```{r 6.11.a.4, fig.align='center', fig.height = 5, fig.width = 5}
 plot(test$crim, xlab= "Actual Crime Rate", 
-     pred.fwd, ylab = "Predicted Crime Rate",
-     main = "Prediction Error",
-     xlim = c(0,100), ylim = c(0,100))
-abline(1,1, col="red")
+     (test$crim-pred.fwd), ylab = "Prediction Error",
+     main = "Residuals")#,
+     # xlim = c(0,100), ylim = c(0,100))
+abline(h=0, col="red")
 ```
 
 
@@ -535,23 +529,227 @@ In our case, We choose the Forward Selection model, which uses just 11 Predictor
 
 # EXERCISE 8.8:
 
-```{r 8.8.setup, warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+```{r 8.8.setup, warning=FALSE, message=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 
-knitr::opts_chunk$set(set.seed(0))
+knitr::opts_chunk$set(set.seed(7))
 
 rm(list = ls())
-require(leaps)   # forward and backward selection
-require(glmnet)  # ridge and lasso
-require(MASS)    # Boston data set
-attach(Boston)
-set.seed(1)
-
+require(tree)
+require(ISLR)
+require(randomForest)
+attach(Carseats)
 ```
 
 ## _8.8.a_
+```{r 8.8.a}
+# 70-30 split
+tr <- sample(1:nrow(Carseats), nrow(Carseats)*0.7)
+carseats_train <- Carseats[tr, ]
+carseats_test <- Carseats[-tr, ]
+
+cat("Length of Carseats Dataset:",paste(nrow(Carseats)),"\n")
+cat("Length of Train Dataset :",paste(nrow(carseats_train)),"\n")
+cat("Length of Test Dataset  :",paste(nrow(carseats_test)))
+```
+
+## _8.8.b_
+```{r 8.8.b.1}
+carseats_tree <- tree(Sales~., data = carseats_train)
+summary(carseats_tree)
+```
+```{r 8.8.b.2}
+plot(carseats_tree)
+text(carseats_tree, pretty = 0)
+```
+```{r 8.8.b.3}
+tree_preds <- predict(carseats_tree, newdata = carseats_test)
+tree_err <- mean((tree_preds - carseats_test$Sales)^2)
+cat("Test MSE for tree is:",paste(tree_err))
+```
+## _8.8.c_
+```{r 8.8.c.1}
+carseats_cv <- cv.tree(carseats_tree)
+plot(carseats_cv$size, xlab="Size of Tree",
+     carseats_cv$dev, ylab="Deviation",
+     main="Selecting Tree Size by Cross-Validation", type = "b")
+
+tree_min <- which.min(carseats_cv$dev)
+abline(v = carseats_cv$size[tree_min], col = "red")
+points(carseats_cv$size[tree_min], carseats_cv$dev[tree_min], cex = 2, pch = 20)
+```
+Therefore, Cross-Validation suggests minimum Deviation at tree size of 8. 
+Thus, Pruning the tree to size of 8
+```{r 8.8.c.2}
+carseats_pruned <- prune.tree(carseats_tree, best = carseats_cv$size[tree_min])
+plot(carseats_pruned)
+text(carseats_pruned, pretty = 0)
+```
+```{r 8.8.c.3}
+pruned_preds <- predict(carseats_pruned, newdata = carseats_test)
+pruned_err <- mean((pruned_preds - carseats_test$Sales)^2)
+cat("Test MSE for Pruned tree is:",paste(pruned_err))
+```
+We observe that Test MSE has **increased** to 5.09 after pruning.
+
+## _8.8.d_
+For Bagging, Implementing Random Forest with each tree considering all parameters _(mtry = ncol(Carseats) -1)_
+
+_**NOTE**: Subtracting 1 from ncol(Carseats) because one of the columns in the DataSet is the target column itself_
+```{r 8.8.d.1}
+carseats_bagging <- randomForest(Sales~.,
+                                 data = carseats_train,
+                                 mtry = ncol(Carseats)-1,
+                                 ntree = 500, importance = TRUE)
+
+preds_bagging <- predict(carseats_bagging, newdata = carseats_test)
+bagging_err <- mean((preds_bagging - carseats_test$Sales)^2)
+cat("Test MSE for Bagged Model is:",paste(bagging_err))
+```
+```{r 8.8.d.2}
+x <- importance(carseats_bagging)
+x[order(x[,"IncNodePurity"], decreasing = TRUE),]
+```
+From the above table, we see that **ShelveLoc** and **Price** are the most important predictors for _Sales_.
+
+## _8.8.e_
+For Random Forest, each tree will consider a subset of parameters
+$$ m = \sqrt(p) $$
+ Thus: _(mtry = floor(sqrt(ncol(Carseats) -1)))_
+ 
+_**NOTE**: Subtracting 1 from ncol(Carseats) because one of the columns in the DataSet is the target column itself_
+```{r 8.8.e.1}
+carseats_randomfrst <- randomForest(Sales~.,
+                                 data = carseats_train,
+                                 mtry = floor(sqrt(ncol(Carseats) -1)),
+                                 ntree = 500, importance = TRUE)
+
+preds_randomfrst <- predict(carseats_randomfrst, newdata = carseats_test)
+randomfrst_err <- mean((preds_randomfrst - carseats_test$Sales)^2)
+cat("Test MSE for Random Forest Model is:",paste(randomfrst_err))
+```
+We observe that reducing _**m**_ from 10 _(Bagging)_ to 3 _(Random Forest)_ increases the Test MSE a little bit.
+
+This increase in MSE can be explained by the fact that in Random Forest, 
+unlike Bagging (wherein each tree is exposed to all the predictors), 
+each tree is exposed to a subset of the predictors.
+
+```{r 8.8.e.2}
+x <- importance(carseats_randomfrst)
+x[order(x[,"IncNodePurity"], decreasing = TRUE),]
+```
+From the above table, we see that **ShelveLoc** and **Price** are the still most important predictors for _Sales_.
 
 ***
+
 <a id="8.8"></a>
+
+# EXERCISE 8.11:
+
+```{r 8.11.setup, warning=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(7))
+
+rm(list = ls())
+require(gbm)
+require(class)
+require(ISLR)
+require(randomForest)
+require(caret)
+attach(Caravan)
+```
+
+## _8.11.a_
+```{r 8.11.a}
+#Converting the Caravan$Purchase to a 0/1 column so that Bernoulli works(GBM)
+Caravan$Purchase <- ifelse(Caravan$Purchase == "Yes", 1,0)
+
+# First 1000 training; rest test split
+caravan_train <- Caravan[1:1000, ]
+caravan_test <- Caravan[1001:nrow(Caravan), ]
+
+
+cat("Length of Caravan Dataset:",paste(nrow(Caravan)),"\n")
+cat("Length of Train Dataset :",paste(nrow(caravan_train)),"\n")
+cat("Length of Test Dataset  :",paste(nrow(caravan_test)))
+```
+
+## _8.11.b_
+```{r 8.11.b.1}
+caravan_boost <- gbm(Purchase~.,
+                     data = caravan_train,
+                     n.trees = 1000,
+                     shrinkage = 0.01,
+                     distribution = "bernoulli")
+summary(caravan_boost)
+```
+From the Table and Graph, we can conclude that the top **Most-Important Predictors** are:
+
+- PPERSAUT
+- MKOOPKLA
+- MOPLHOOG
+
+## _8.11.c_
+> **Boosting**
+
+```{r 8.11.c.boost}
+boost_preds <- predict(caravan_boost, caravan_test, n.trees = 1000, type = "response")
+boost_preds <- as.factor(ifelse(boost_preds > 0.2, 1, 0))
+cm <- confusionMatrix(boost_preds, as.factor(caravan_test$Purchase), positive = "1")
+cm$table
+cat("[Boosting] Fraction of the people predicted to make a purchase who in fact make one:",
+    paste(round(cm$byClass["Precision"], digits = 2)))
+```
+This value is also called the _**Precision**_
+
+> **Logistic Regression**
+
+```{r 8.11.c.logit}
+caravan_logit <- glm(Purchase ~ ., data = caravan_train, family = "binomial")
+logit_preds <- predict(caravan_logit, caravan_test, type = "response")
+logit_preds <- as.factor(ifelse(logit_preds > 0.2, 1, 0))
+cm <- confusionMatrix(logit_preds, as.factor(caravan_test$Purchase), positive = "1")
+cm$table
+
+cat("[Logistic Regression]Fraction of the people predicted to make a purchase who in fact make one:",
+    paste(round(cm$byClass["Precision"], digits = 2)))
+```
+> **KNN**
+
+```{r 8.11.c.knn}
+kk <- seq(2,nrow(caravan_train)/2, by = 100)
+out_precision_knn <- NULL
+
+for(i in kk)
+{
+  i
+  knn_preds=knn(caravan_train[,-86],caravan_test[,-86],caravan_train$Purchase,k=i)
+  cm <- confusionMatrix(knn_preds, as.factor(caravan_test$Purchase), positive = "1")
+  
+  out_precision_knn <- c(out_precision_knn, cm$byClass["Precision"])
+}
+out_precision_knn <- as.data.frame(out_precision_knn)
+rownames(out_precision_knn) <- kk
+t(out_precision_knn)
+```
+Simply applying KNN does not work because the training data is highly skewed.
+The following is the Summary of **Purchase** in Training Set:
+```{r 8.11.c.1}
+summary(as.factor(caravan_train$Purchase))
+```
+Thus, the model ends up predicting everything as class-0 or _Not Purchased_
+Whole this achieves a High accuracy, the precision is low.
+
+In order to improve the model, we probably need to _undersample_ 
+the majority class in our training data.
+
+**Summary:**
+_**Boosting**_ outperforms _**Logistic Regression**_.
+***
+
+<a id="8.11"></a>
