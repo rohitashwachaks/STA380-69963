@@ -1,10 +1,39 @@
 ---
-title: "Untitled"
-author: "Rohitashwa Chakraborty"
-date: "30/07/2021"
+title: "Take Home Examination\n(Intro To ML)"
+author: "Rohitashwa Chakraborty (rc47878)"
+date: "01 Aug 2021"
 output:
   pdf_document: default
 ---
+# Exercise 2.10:
+
+```{r 2.10.setup, warning=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(7))
+
+rm(list = ls())
+require(MASS)
+attach(Boston)
+```
+
+## _2.10.a_
+
+```{r 2.10.a.1}
+cat("Number of rows in the Boston DataSet   :",paste(nrow(Boston)),"\n")
+cat("Number of columns in the Boston DataSet:",paste(ncol(Boston)),"\n")
+```
+The columns represent the following:
+```{r 2.10.a.2}
+```
+
+
+***
+<a id="2.10"></a>
+
+
 # EXERCISE 4.10:
 
 ```{r 4.10.setup, include=FALSE}
@@ -750,6 +779,285 @@ the majority class in our training data.
 
 **Summary:**
 _**Boosting**_ outperforms _**Logistic Regression**_.
+
+***
+<a id="8.11"></a>
+
+# Problem-1 Beauty Pays:
+
+Upon reading the _"BeautyData.csv"_ file, we find that the following categorical columns 
+are read as integers:
+
+- female
+- lower
+- nonenglish
+- tenuretrack
+
+Thus converting the same into **factors**.
+
+> Summary:
+
+```{r 1.setup, warning=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(7))
+
+rm(list = ls())
+Beauty <- read.csv("BeautyData.csv")
+
+Beauty$female <- as.factor(Beauty$female)
+Beauty$lower <- as.factor(Beauty$lower)
+Beauty$nonenglish <- as.factor(Beauty$nonenglish)
+Beauty$tenuretrack <- as.factor(Beauty$tenuretrack)
+
+attach(Beauty)
+summary(Beauty)
+```
+
+## _1.1_
+In order to estimate the effect of _"Beauty"_ on a professor's _"CourseEvaluation"_, 
+taking into account the other determinants, we will fit a Multiple regression model
+> Model Summary
+
+```{r 1.1}
+beauty_linreg <- lm(CourseEvals~.,data = Beauty)
+summary(beauty_linreg)
+```
+From the above model summary, we see that a person's beauty actually has a statistically significant impact on their course evaluation.
+
+Holding other determinants constant, the _**CourseEval**_ is directly proportional to _**BeautyScore**_ by a factor of **0.30415**
+
+## _1.2_
+
+
+***
+<a id="Problem-1: Beauty Pays"></a>
+
+# Problem-2 Housing Price Structure:
+
+Upon reading the _"MidCity.csv"_ file, we find the following:
+
+- **Home:** This is the ID and is same as the row number and hence, can be dropped.
+- **Bricks:** This is a categorical Variable and thus need to convert it
+- **Nbhd:** This is the Neighbourhood. This is a Categorical Value too and needs to be converted into factors
+- **Sqft:** This is the Square Feet area of the House. While the other predictors are in a range of 0-6, Sqft. is way outside. Thus scaling this parameter down will allow for a better regression fit.
+
+> Summary:
+
+```{r 2.setup, warning=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(7))
+
+rm(list = ls())
+MidCity <- read.csv("MidCity.csv")
+MidCity <- MidCity[,-1]
+
+MidCity$Brick <- as.factor(MidCity$Brick)
+MidCity$Nbhd <- as.factor(MidCity$Nbhd)
+MidCity$SqFt <- scale(MidCity$SqFt)
+
+attach(MidCity)
+summary(MidCity)
+```
+Each of the Predictors _(Nbhd,Offers,Brick,Bedrooms,Bathrooms)_ have similar range,
+therefore no scaling required.
+
+## _2.1_
+
+To understand the impact of the being a Brick house on Price, all other factors considered, we will fit a Multiple regression model
+
+> Model Summary:
+
+```{r 2.lm-model}
+midcity_linreg <- lm(Price~.,data = MidCity)
+summary(midcity_linreg)
+```
+From the above model summary, we see that the parameter: **BrickYes** is statistically significant _(assuming a 95% confidence interval for the hypothesis_ $\beta_{BrickYes} = 0$ _)_ and has a positive impact on the Price. Thus, holding other factors constant, being a Brick House increases the Price of a house by $17,297.
+
+In other words, **Premium for a Brick House is estimated to be $17,297.**
+
+## _2.2_
+
+**Yes, There is a premium for a House in Neighbourhood 3**
+
+All other factors held constant, a house in Neighbouhood 3 fetches:
+
+- $20,681 more than the same house in Neighbourhood 1
+- $22,242 more than the same house in Neighbourhood 2
+
+## _2.3_
+
+In order to account for plausible interactions between predictors,
+a new feature: **Brick_Nbhd3** has to be added. which will be 1 iff the house is a brick house in Neighbourhood 3
+
+```{r 2.3}
+MidCity$Brick_Nbhd3 <- as.factor(ifelse(Brick == "Yes" & Nbhd == "3","Yes","No" ))
+midcity_linreg2 <- lm(Price~.,data = MidCity)
+summary(midcity_linreg2)
+```
+From the above model summary, we see that the parameter: **Brick_Nbhd3No** is statistically significant and has a negative impact on the Price. Thus, holding other factors constant, being a Brick House in Neighbourhood 3 increases the Price of a house by $10,182.
+
+In other words, **Extra Premium for a Brick House in Neighbourhood 3 is estimated to be $10,182.**
+
+_**NOTE:** This interaction is only statistically significant if we assume a 95% confidence interval. A less restrictive confidence interval, say 99%, might make the interaction statistically insignificant since the p-value will lie within the non-rejection region of the hypothesis_ $\beta_{Brick\_Nbhd3No} = 0$
+
+## _2.4_
+
+_**Yes**_, we may merge Neighbourhood 2 and 1 into a common "Old" class.
+
+In our models, both **Nbhd1** and **Nbhd2** are statistical significant _(considering a 95% confidence interval for the hypothesis)_ $\beta_{Nbhd1} = 0$ _and_ $\beta_{Nbhd2} = 0$
+Thus, we fail to reject the hypothesis that Nbhd2 has a 0 coefficient. This implies that belonging to Neighbourhood2 specifically has a significant impact on house price. So, merging Neighbourhood 2 and 1 into a common class would be unwise.
+
+***
+<a id="Problem-2: Housing Price Structure"></a>
+
+
+# Problem-3 What Causes What??:
+
+## _3.1_
+
+For our models to perform well, we need to ensure that our datasets do not have any inherent biases.
+
+At first sight, it might seem that _"getting data from a few different cities and running the regression of Crime on Police to understand how more cops in the streets affect crime"_ is a good idea. However, we need to consider that the density of Police in a city is a policy decision which is taken in response to existing Crime Rates.
+
+Thus, our model will end up reinforcing our bias: _"More Cops reduce Crime."_
+
+However, to get a good dataset, free of biases, we must **conduct experiments randomly.**
+One way to achieve this would be by deploying different number of cops across different cities and alert levels over multiple days.
+
+## _3.2_
+
+To obtain their dataset, the researchers from UPENN were able to get the data for an experiment that saw a high volume of police on the streets on high terror alert days.
+
+They observed a low crime rate on high alert days, when more police were deployed on the streets.
+However, higher police activity was observed on those days to monitor and curb terrorist activities; not for controlling petty crimes.
+
+Similarly, as shown in the table 2, the UPENN researchers considered the metro ridership information, to confirm that low crime rates was not a result of lesser movement of possible criminals or victims.
+
+Nevertheless, there exists an alternate explanation for crime rates being be low on high alert days.
+High alert implies higher probability of a terrorist incident, vis-a-vis being the victim of one. Thus the criminals, like the common man, avoid exposing themselves to this threat by staying indoors.
+This would mean that the observed lower crime rate are police activity are not directly related but the high alert is an underlying *confounding variable*.
+
+For the purpose of this experiment, as indicated by the table-2, if the ridership is kept constant on high alert days, *more police would reduce crime rate*.
+
+## _3.3_
+
+As mentioned above, METRO ridership had to be controlled to ensure that it was not affecting crime rates. This would help the UPENN researchers establish a more clear relationship between "Police" and "Crime". Consequently, according to the experiment, it was observed that keeping the metro ridership fixed for high alert days, **more police reduced crime rates**.
+
+## _3.4_
+
+Table 4 has further refined the analysis to check if the effect of high alert days on crime was the same in all areas of town.
+
+Using interactions between *location* and *high alert days* it was observed the effect is only statistically significant _(with a confidence interval of 95%)_ in district 1. The effect in the
+5 other districts, though still negative, is not statistically significant.
+
+***
+<a id="Problem-3: What causes what??"></a>
+
+# Problem-4 Neural Nets:
+
+```{r 4.setup, warning=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(7))
+
+rm(list = ls())
+require(nnet)
+require(NeuralNetTools)
+require(MASS)
+attach(Boston)
+```
+
+## Step-1:
+
+First, we split the data-set into **Train, Cross-Validation** and **Test** sets
+```{r 4.1}
+tr_size <- sample(1:nrow(Boston), nrow(Boston)*0.8)
+
+boston_train <- Boston[tr_size,]
+boston_nontrain <- Boston[-tr_size,]
+
+cv_size <- sample(1:nrow(boston_nontrain), nrow(boston_nontrain)*0.5)
+
+boston_cv <- boston_nontrain[cv_size,]
+boston_test <- boston_nontrain[-cv_size,]
+
+
+cat("Length of Boston Dataset           :",paste(nrow(Boston)),"\n")
+cat("Length of Train Dataset            :",paste(nrow(boston_train)),"\n")
+cat("Length of Cross Validation Dataset :",paste(nrow(boston_cv)),"\n")
+cat("Length of Test Dataset             :",paste(nrow(boston_test)))
+```
+
+## Step-2:
+
+Fitting a single layer neural net to predict **medv** based on all other variables in Boston dataset as predictors:
+```{r 4.2}
+nn1 <- nnet(medv~., data = boston_train, size = 1, decay = 0, linout = TRUE, skip = TRUE)
+print(nn1)
+plotnet(nn1)
+nn1_pred <- predict(nn1,boston_nontrain)
+nn1_rmse <- sqrt(mean((boston_nontrain$medv - nn1_pred)^2))
+cat("RMSE of a single-layer neural network is: ",paste(round(nn1_rmse, digits = 3)))
+```
+
+## Step-3:
+
+Cross-Validating over different **Size** and **Decay** Parameters:
+```{r 4.3.1, include=FALSE}
+decay <- c(0,0.1,0.3,0.01,0.03,0.001,0.003,0.0001,0.0003,0.00001,0.00003)
+size <- c(1,2,5,10,20,30)
+out_rmse <- matrix(0,length(size),length(decay))
+
+for (i in 1:length(size)){
+  for (j in 1:length(decay)){
+    nn <- nnet(medv~., data = boston_train, size = size[i], decay = decay[j], linout = TRUE, skip = TRUE)
+    preds <- predict(nn,boston_cv)
+    out_rmse[i,j] <- sqrt(mean((boston_cv$medv - preds)^2))
+  }
+}
+
+best_rmse <- out_rmse[which.min(out_rmse)]
+
+best_size <- size[which(out_rmse == min(out_rmse), arr.ind = TRUE)[,"row"]]
+best_decay <- decay[which(out_rmse == min(out_rmse), arr.ind = TRUE)[,"col"]]
+```
+```{r 4.3.2}
+colnames(out_rmse) <- decay
+rownames(out_rmse) <- size
+out_rmse
+cat("Minimum Cross-Validation RMSE of",paste(best_rmse),
+    "achieved with a Neural Net with the following specs:\nSize:",paste(best_size),
+    "\nDecay:",paste(best_decay))
+```
+## Step-4:
+Test Error on the Test Set with the Neural Net chosen from the Cross-Validation set
+```{r 4.4}
+nn3 <- nnet(medv~., data = boston_train, size = best_size, decay = best_decay, linout = TRUE, skip = TRUE)
+print(nn3)
+plotnet(nn3)
+nn3_pred <- predict(nn3,boston_test)
+nn3_rmse <- sqrt(mean((boston_test$medv - nn3_pred)^2))
+cat("\n\nRMSE of a Neural Net of Size:",paste(best_size),
+    "and Decay:",paste(best_decay),
+    "is-\n",paste(round(nn3_rmse, digits = 3)))
+```
+
 ***
 
-<a id="8.11"></a>
+<a id="Problem-4: Neural Nets"></a>
+
+# Problem-5 Final Project:
+
+
+
+***
+<a id="Problem-5: Final Project"></a>
+
