@@ -25,14 +25,222 @@ attach(Boston)
 cat("Number of rows in the Boston DataSet   :",paste(nrow(Boston)),"\n")
 cat("Number of columns in the Boston DataSet:",paste(ncol(Boston)),"\n")
 ```
-The columns represent the following:
+A rows represent observations for each town
+
+The columns represent the following features:
+
+- _**crim   : **_ per capita crime rate by town.
+- _**zn     :**_ proportion of residential land zoned for lots over 25,000 sq.ft.
+- _**indus  :**_ proportion of non-retail business acres per town.
+- _**chas   :**_ Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+- _**nox    :**_ nitrogen oxides concentration (parts per 10 million).
+- _**rm     :**_ average number of rooms per dwelling.
+- _**age    :**_ proportion of owner-occupied units built prior to 1940.
+- _**dis    :**_ weighted mean of distances to five Boston employment centres.
+- _**rad    :**_ index of accessibility to radial highways.
+- _**tax    :**_ full-value property-tax rate per \$10,000.
+- _**ptratio:**_ pupil-teacher ratio by town.
+- _**black  :**_ 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+- _**lstat  :**_ lower status of the population (percent).
+- _**medv   :**_ median value of owner-occupied homes in \$1000s.
 ```{r 2.10.a.2}
+str(Boston)
 ```
 
+## _2.10.b_
+```{r 2.10.b, fig.align='center', fig.height = 5, fig.width = 7}
+pairs(Boston[,c("age","crim","lstat","rm","medv")])
+```
+_**Inference:**_
+
+- *lstat* is negatively corelated with *medv*
+- *lstat* is negatively corelated with *rm*
+- very low *medv* usually has higher *crime rate*. But largely, *crime rate* is independent of *locality/medv*
+- *lstat* independent of *crime rate*
+- *rm* (#Rooms) positively corelated to *medv*
+- relationship between *crime rate per capita* and other variables is *non-linear*
+
+## _2.10.c_
+```{r 2.10.c, fig.align='center', fig.height = 5, fig.width = 5}
+for(col in colnames(Boston[,-1])){
+  plot(crim, xlab = "Crime Rate",
+       Boston[,col], ylab = paste(col),
+       main = paste("Per Caprita Crime Rate v/s",col))
+}
+```
+_**Inference:**_
+
+- There exists some correlations for *per capita crime rate* with each variable, except *chas*
+- *crime rate* seem to spike within certain zones
+    * when *rad* is > 20
+    * when *tax* is between 600 and 700
+    * when *zn* is close to 0
+    * when *nox* is between 0.6 and 0.8
+- negative correlations with *dis*, *medv* and maybe *black*
+
+## _2.10.d_
+
+```{r 2.10.d, fig.align='center', fig.height = 5, fig.width = 5}
+
+for(col in colnames(Boston[,c("ptratio","crim","tax")])){
+  plot(Boston[,col], xlab = "Frequency", ylab = col)
+}
+```
+_**Inference**_
+
+- There exists definite outliers for *crim* and *tax*
+- There are no clear outliers for *ptratio*
+
+## _2.10.e_
+```{r 2.10.e}
+cat("Number of Towns bound by the Clares river:",paste(sum(chas==1)))  # 35 towns
+```
+## _2.10.f_
+```{r 2.10.f}
+cat("Median Pupil-Teacher Ratio:",paste(median(ptratio)))  # 35 towns
+```
+## _2.10.g_
+```{r 2.10.g}
+# there are two towns with lowest medv value of 5
+(seltown <- Boston[Boston$medv == min(Boston$medv),])
+# overall quartiles and range of predictors
+sapply(Boston, quantile)
+```
+How the predictors for the minimum *Median Value* compare against the rest:
+
+- *age*, *rad* at max
+- *crim*, *indus*, *nox*, *tax*, *ptratio*, *lstat* at or above 75th percentile
+- lowest for *zn*, *rm*, *dis*
+
+## _2.10.h_
+```{r 2.10.h}
+# count of towns
+cat("suburbs average >7 rooms per dwelling:",paste(nrow(Boston[Boston$rm > 7,])),"\n")
+cat("suburbs average >8 rooms per dwelling:",paste(nrow(Boston[Boston$rm > 8,])),"\n\n")
+
+cat("Stats regarding Dwellings with more than 8 bedrooms:\n")
+sapply(Boston[Boston$rm > 8,], summary)
+```
+
+* *crime rates* are higher _(in the 50-75%ile: )_
+* higher proportion of 25K sq ft lots
+* much lower *lstat* value
+* higher *medv* value
 
 ***
 <a id="2.10"></a>
 
+# EXERCISE 3.15:
+
+```{r 3.15.setup, warning=FALSE, message=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+
+knitr::opts_chunk$set(set.seed(7))
+
+rm(list = ls())
+require(MASS)
+require(corrplot)
+attach(Boston)
+```
+
+## _3.15.a_
+
+```{r 3.15.a, fig.align='center', fig.height = 5, fig.width = 5}
+mat <- matrix(0,length(colnames(Boston[,-1])),3)
+i <- 0
+
+significant <- NULL
+
+for(cols in colnames(Boston[,-1]))
+{
+  i <- i+1
+  cor(crim,Boston[cols])
+  cat("\n")
+  mdl <- lm(paste("crim~",cols), data = Boston)
+  
+  smry <- summary(mdl)
+  coeff <- as.numeric(smry$coefficients[2,]["Estimate"])
+  pval <- as.numeric(smry$coefficients[2,]["Pr(>|t|)"])
+  rsqval <- as.numeric(smry$r.squared)
+  
+  plot(unlist(Boston[cols]),crim,pch=19,cex=1.5,xlab="Crime Rate",ylab = cols)
+  abline(smry$coefficients[1,]["Estimate"],
+         smry$coefficients[2,]["Estimate"],col=2,lwd=2)
+  
+  mat[i,1] <- coeff
+  mat[i,2] <- pval
+  mat[i,3] <- rsqval
+  
+  cat("For Predictor :",paste(cols),
+      "\nCo-efficient:",paste(coeff),
+      "\nP-value     :",paste(pval),
+      "\nR^2         :",paste(rsqval),
+      "\n")
+  if(pval <= 0.05)
+  {
+    significant <- c(significant,cols)
+  }
+}
+
+cat("\nStatistically Significant Variable are:\n",
+    paste(significant),
+    "\nbecause the P value for these are less than 0.05")
+```
+
+## 3.15.b
+```{r 3.15.b}
+mdl <- lm(crim~., data=Boston)
+smry <- summary(mdl)
+
+# Rejecting Coefficient = 0 hypothesis if p-value < 0.05
+# This means Parameter is Significant
+coeffs <- smry$coefficients[-1,4][smry$coefficients[-1,4] <0.05]
+
+cat("Failing to reject NULL Hypothesis for: ")
+for(x in colnames(t(coeffs))){
+  cat(paste(x),"(",paste(coeffs[x]),")\n")
+}
+cat("Because Their P-Value is < 0.05")
+```
+## 3.15.c----
+```{r 3.15.c, fig.align='center', fig.height = 5, fig.width = 5}
+plot(x = mat[,1], xlab = "Simple Linear Regression Coefficients",
+     y = smry$coefficients[-1,1], ylab = "Multiple Linear Regression Coefficients",
+     main = "Parameter Coefficents Simple v/s Multiple"
+)
+```
+## _3.15.d_
+```{r 3.15.d}
+mat <- matrix(0,length(colnames(Boston[,-1])),3)
+mat <- as.data.frame(mat)
+colnames(mat) <- c("^1","^2","^3")
+row.names(mat) <- colnames(Boston[,-1])
+i <- 0
+
+significant <- NULL
+
+for(cols in colnames(Boston[,-1]))
+{
+  i <- i+1
+  cor(crim,Boston[cols])
+  # cat("\n")
+  mdl <- lm(paste("crim~",cols,"+I(",cols,"^2)+I(",cols,"^3)"), data = Boston)
+  
+  smry <- summary(mdl)
+  for(j in 1:3){
+    mat[i,] <- t(smry$coefficients[-1,4])
+  }
+  # plot(unlist(Boston[cols]),crim,pch=19,cex=1.5,xlab="Crime Rate",ylab = cols)
+  # lines(sort(crim), fitted(mdl)[order(crim)], col='red', type='l') 
+}
+
+mat
+```
+
+***
+<a id="3.15"></a>
 
 # EXERCISE 4.10:
 
