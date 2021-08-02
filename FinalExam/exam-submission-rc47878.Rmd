@@ -149,6 +149,8 @@ attach(Boston)
 
 ```{r 3.15.a, fig.align='center', fig.height = 5, fig.width = 5}
 mat <- matrix(0,length(colnames(Boston[,-1])),3)
+colnames(mat) <- c("Coefficient","P-Value","R^2")
+row.names(mat) <- colnames(Boston[,-1])
 i <- 0
 
 significant <- NULL
@@ -192,11 +194,11 @@ cat("\nStatistically Significant Variable are:\n",
 ## 3.15.b
 ```{r 3.15.b}
 mdl <- lm(crim~., data=Boston)
-smry <- summary(mdl)
+smry_mul <- summary(mdl)
 
 # Rejecting Coefficient = 0 hypothesis if p-value < 0.05
 # This means Parameter is Significant
-coeffs <- smry$coefficients[-1,4][smry$coefficients[-1,4] <0.05]
+coeffs <- smry_mul$coefficients[-1,4][smry_mul$coefficients[-1,4] <0.05]
 
 cat("Failing to reject NULL Hypothesis for: ")
 for(x in colnames(t(coeffs))){
@@ -204,13 +206,25 @@ for(x in colnames(t(coeffs))){
 }
 cat("Because Their P-Value is < 0.05")
 ```
-## 3.15.c----
+## _3.15.c_
 ```{r 3.15.c, fig.align='center', fig.height = 5, fig.width = 5}
 plot(x = mat[,1], xlab = "Simple Linear Regression Coefficients",
-     y = smry$coefficients[-1,1], ylab = "Multiple Linear Regression Coefficients",
+     y = smry_mul$coefficients[-1,1], ylab = "Multiple Linear Regression Coefficients",
      main = "Parameter Coefficents Simple v/s Multiple"
 )
+
+cat("Coefficients of Simple Linear Regression\n")
+mat
+
+
+cat("\n\nCoefficients of Multiple Linear Regression\n")
+smry_mul$coefficients
 ```
+From the plot and the tables, we see that most of the predictors are around the same range of values, except **nox**.
+
+- $\beta_{nox}$ went from 31.25 in the case of Simple Linear Regression to -10.31 in Multiple Linear Regression.
+- Similarly, $\beta_{zn}$ also flipped signs and went from -0.07 to 0.04
+
 ## _3.15.d_
 ```{r 3.15.d}
 mat <- matrix(0,length(colnames(Boston[,-1])),3)
@@ -238,6 +252,17 @@ for(cols in colnames(Boston[,-1]))
 
 mat
 ```
+
+Thus, from the P-Value, we can conclude that, for a 95% confidence interval, there exists a statistically significant non-linear relationship between crime rate and the following predictors:
+
+- **zn**
+- **indus**
+- **nox**
+- **age**
+- **dis**
+- **ptratio**
+- **lstat**
+- **medv**
 
 ***
 <a id="3.15"></a>
@@ -396,7 +421,7 @@ Considering only **Accuracy**, we can conclude that the following models perform
 
 **K= 30, Predictors: All Predictors**
 
-```{r4.10.i.2}
+```{r 4.10.i.2}
 preds <- knn(as.matrix(train[,-9]),
                as.matrix(test[,-9]),
                train$Direction, k=30)
@@ -583,9 +608,8 @@ The **Ridge Regression** outperforms others by a slight margin.
 Its **Test MSE** is: 1447148.005 _(standard deviation = 5319499)_
 ```{r 6.9.g.2, fig.align='center', fig.height = 5, fig.width = 5}
 plot(test$Apps, xlab= "Actual Admits", 
-     ridge_preds, ylab = "Predicted Admits",
-     main = "Prediction Error in Ridge Regression",
-     xlim = c(0,20000), ylim = c(0,20000))
+     test$Apps - ridge_preds, ylab = "Prediction Error",
+     main = "Residuals in Ridge Regression")
 abline(1,1, col="red")
 ```
 ***
@@ -649,32 +673,7 @@ lasso_err <- mean((test$crim - preds)^2)
 cat("\nTest Error of Lasso Regression:",paste(round(lasso_err, digits = 2)))
 # predict(mdl, s=lambda, type="coefficients")
 ```
-<!-- > **Principal Component Regression** -->
 
-<!-- ```{r 6.11.a.pcr} -->
-<!-- # principal component regression model -->
-<!-- mdl <- cv.glmnet(inp_train, train$crim, alpha=1) -->
-<!-- plot(mdl) -->
-<!-- lambda <- mdl$lambda.min -->
-<!-- cat("Optimal Lambda, by 10-fold cross-validation is:",paste(round(lambda, digits = 2))) -->
-<!-- preds <- predict(mdl, s=lambda, newx=inp_test) -->
-<!-- lasso_err <- mean((test$crim - preds)^2) -->
-<!-- cat("\nTest Error of Lasso Regression:",paste(round(lasso_err, digits = 2))) -->
-<!-- # predict(mdl, s=lambda, type="coefficients") -->
-<!-- ``` -->
-<!-- > **Partial Least Square Regression** -->
-
-<!-- ```{r 6.11.a.plsr} -->
-<!-- # partial least square regression model -->
-<!-- mdl <- cv.glmnet(inp_train, train$crim, alpha=1) -->
-<!-- plot(mdl) -->
-<!-- lambda <- mdl$lambda.min -->
-<!-- cat("Optimal Lambda, by 10-fold cross-validation is:",paste(round(lambda, digits = 2))) -->
-<!-- preds <- predict(mdl, s=lambda, newx=inp_test) -->
-<!-- lasso_err <- mean((test$crim - preds)^2) -->
-<!-- cat("\nTest Error of Lasso Regression:",paste(round(lasso_err, digits = 2))) -->
-<!-- # predict(mdl, s=lambda, type="coefficients") -->
-<!-- ``` -->
 ```{r 6.11.a.2}
 # predict function from chapter 6 labs
 predict.regsubsets <- function(object, newdata, id, ...){
@@ -702,34 +701,6 @@ abline(v =min, col="red")
 cat("\nMin. Test Error for Forward Selection is:",paste(round(fwd_err[min], digits = 2)))
 ```
 
-<!-- ```{r} -->
-<!-- par(mfrow=c(3,2)) -->
-
-<!-- min.cp <- which.min(fwd.summary$cp) -->
-<!-- plot(fwd.summary$cp, xlab="Number of Poly(X)", ylab="Forward Selection Cp", type="l") -->
-<!-- points(min.cp, fwd.summary$cp[min.cp], col="red", pch=4, lwd=5) -->
-
-<!-- min.cp <- which.min(bwd.summary$cp) -->
-<!-- plot(bwd.summary$cp, xlab="Number of Poly(X)", ylab="Backward Selection Cp", type="l") -->
-<!-- points(min.cp, bwd.summary$cp[min.cp], col="red", pch=4, lwd=5) -->
-
-<!-- min.bic <- which.min(fwd.summary$bic) -->
-<!-- plot(fwd.summary$bic, xlab="Number of Poly(X)", ylab="Forward Selection BIC", type="l") -->
-<!-- points(min.bic, fwd.summary$bic[min.bic], col="red", pch=4, lwd=5) -->
-
-<!-- min.bic <- which.min(bwd.summary$bic) -->
-<!-- plot(bwd.summary$bic, xlab="Number of Poly(X)", ylab="Backward Selection BIC", type="l") -->
-<!-- points(min.bic, bwd.summary$bic[min.bic], col="red", pch=4, lwd=5) -->
-
-<!-- min.adjr2 <- which.max(fwd.summary$adjr2) -->
-<!-- plot(fwd.summary$adjr2, xlab="Number of Poly(X)", ylab="Forward Selection Adj. R^2", type="l") -->
-<!-- points(min.adjr2, fwd.summary$adjr2[min.adjr2], col="red", pch=4, lwd=5) -->
-
-<!-- min.adjr2 <- which.max(bwd.summary$adjr2) -->
-<!-- plot(bwd.summary$adjr2, xlab="Number of Poly(X)", ylab="Backward Selection Adj. R^2", type="l") -->
-<!-- points(min.adjr2, bwd.summary$adjr2[min.adjr2], col="red", pch=4, lwd=5) -->
-<!-- ``` -->
-
 ```{r 6.11.a.3, fig.align='center', fig.height = 5, fig.width = 5}
 all_errs <- c(ridge_err, lasso_err, min(fwd_err))
 names(all_errs) <- c("ridge", "lasso", "Forward")
@@ -744,8 +715,7 @@ Its **Test MSE** is: 69.55
 ```{r 6.11.a.4, fig.align='center', fig.height = 5, fig.width = 5}
 plot(test$crim, xlab= "Actual Crime Rate", 
      (test$crim-pred.fwd), ylab = "Prediction Error",
-     main = "Residuals")#,
-     # xlim = c(0,100), ylim = c(0,100))
+     main = "Residuals")
 abline(h=0, col="red")
 ```
 
@@ -1291,7 +1261,6 @@ Thus, I proceeded with just **Age**, **BMI** and **Average Glucose Level** in my
 As is expected with any real world health data, I observed that my dataset was highly skewed with only 5% of the data classified as **Stroke**. The models were achieving high accuracy and 0 Recall *(because everything was being classified as Non-Stroke)* To deal with this imbalance, I chose to ***undersample*** my data and created a new dataset with a 3:2 ratio of Non-Stroke:Stroke.
 
 ![](images/scatterplot_3params.png "undersampled dataset"){width="245"}
-
 ![](images/smote-scatterplot3d-01.png "Oversampled Stroke Dataset"){width="245"}
 
 I had also tried **Oversampling** like the rest of my group members but since *SMOTE* produces artificial duplicates of the minority class using KNN itself, the model's were over fitting and performing poorly.
@@ -1306,13 +1275,14 @@ I chose to implement ***K-Fold Cross Validation*** with a K of 10 to select the 
 - *Age + Average Glucose Level*
 - *Age + Average Glucose Level + BMI*
 
-Theie results are as follows:
+The results are as follows:
 
 ![](images/knn-age.png){width="220"}
 ![](images/knn-age-glucose.png){width="220"}
 ![](images/knn-age-glucose-bmi.png){width="220"}
 
-
+As is clear from the model outputs, KNN did a very poor job at classifying Heart Strokes
+from just the dataset we had. However, It paved the way for more complex models and we were able to work on Bagging, Boosting and Random Forest models which proved to be far more effective in dealing with the categortical predictors.
 
 ***
 <a id="Problem-5: Final Project"></a>
