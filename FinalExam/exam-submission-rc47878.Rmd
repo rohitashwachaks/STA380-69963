@@ -1262,8 +1262,55 @@ cat("\n\nRMSE of a Neural Net of Size:",paste(best_size),
 
 <a id="Problem-4: Neural Nets"></a>
 
-# Problem-5 Final Project:
+# Problem-5 Final Project(GROUP-7; Morning Class):
 
+## Problem Statement:
+
+**What are the important factors in predicting strokes? How can hospitals/public health use this information to prevent strokes and/or help identify them?**
+
+For our project, we used a publicly available heart stroke dataset with 11 predictors. We decided to implement a couple of different models and compare them to find the best model.
+
+I chose to implement a KNN model. I also produced several of the key visualisations that was used by my group as reference.
+
+## Approach
+
+Right off the bat, I faced the following issues:
+
+### Categorical Predictors
+
+7 out of 11 of our database were categorical in nature. Only **Age**, **BMI** and **Average Glucose Level** were numeric.
+
+The fundamental mechanism behind KNN is to find the *closest* neightbour. Distances are usually calculated by using a function, usually an order of Minkowski function. However, Distances between categories is not intuitive.
+
+Infact, the model's Adjusted $R^2$ dropped when I included all the categorical variables v/s when I had just used the aforementioned 3 numeric variables.
+
+Thus, I proceeded with just **Age**, **BMI** and **Average Glucose Level** in my models.
+
+### Skewed Data
+
+As is expected with any real world health data, I observed that my dataset was highly skewed with only 5% of the data classified as **Stroke**. The models were achieving high accuracy and 0 Recall *(because everything was being classified as Non-Stroke)* To deal with this imbalance, I chose to ***undersample*** my data and created a new dataset with a 3:2 ratio of Non-Stroke:Stroke.
+
+![](images/scatterplot_3params.png "undersampled dataset"){width="245"}
+
+![](images/smote-scatterplot3d-01.png "Oversampled Stroke Dataset"){width="245"}
+
+I had also tried **Oversampling** like the rest of my group members but since *SMOTE* produces artificial duplicates of the minority class using KNN itself, the model's were over fitting and performing poorly.
+
+### Cross Validation
+
+I chose to implement ***K-Fold Cross Validation*** with a K of 10 to select the neighbourhood size *(vis-a-vis complexity)* of my KNN model. I tried doing with with different combinations of Predictors like:
+
+> ***Age***
+
+![](images/knn-age.png){width="245"}
+
+> ***Age + Average Glucose Level***
+
+![](images/knn-age-glucose.png){width="245"}
+
+> ***Age + Average Glucose Level + BMI***
+
+![](images/knn-age-glucose-bmi.png){width="245"}
 
 
 ***
