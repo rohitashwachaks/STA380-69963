@@ -1298,19 +1298,20 @@ I had also tried **Oversampling** like the rest of my group members but since *S
 
 ### Cross Validation
 
+Since Our's was a classification problem of Heart Stroke prediction, we decided that
+the **Model Recall is the most important indicator of a Model's Efficay** _(With Precision and Accuracy as guardrails)_.
 I chose to implement ***K-Fold Cross Validation*** with a K of 10 to select the neighbourhood size *(vis-a-vis complexity)* of my KNN model. I tried doing with with different combinations of Predictors like:
 
-> ***Age***
+- *Age*
+- *Age + Average Glucose Level*
+- *Age + Average Glucose Level + BMI*
 
-![](images/knn-age.png){width="245"}
+Theie results are as follows:
 
-> ***Age + Average Glucose Level***
+![](images/knn-age.png){width="220"}
+![](images/knn-age-glucose.png){width="220"}
+![](images/knn-age-glucose-bmi.png){width="220"}
 
-![](images/knn-age-glucose.png){width="245"}
-
-> ***Age + Average Glucose Level + BMI***
-
-![](images/knn-age-glucose-bmi.png){width="245"}
 
 
 ***
